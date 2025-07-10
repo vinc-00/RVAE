@@ -21,10 +21,9 @@ from Util import loss_fn
 from Model import RelationVAE
 from Dataset import TwoDigitRelationMNIST
 
-def train_relation_vae():
+def train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=20, v_model_name='VAE.pt'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Create datasets
     full_dataset = TwoDigitRelationMNIST(min_num=0, max_num=99, relations=[-1, 1, -12, 12])
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
@@ -33,31 +32,31 @@ def train_relation_vae():
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=2, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False, num_workers=2, pin_memory=True)
 
-    # Initialize model
+
     vae = RelationVAE(
         encoder_layer_sizes=[1568, 1024, 512, 256],
         latent_size=128,
         decoder_layer_sizes=[256, 512, 1024, 1568]
     ).to(device)
 
-    optimizer = torch.optim.Adam(vae.parameters(), lr=1e-4, weight_decay=1e-5)
-
+    optimizer = torch.optim.Adam(vae.parameters(), lr=v_lr) # pay attention to weight decay (consider to remove weight_decay)
+               # looking for best practices to train the Variational Autoencoder. Search for best practices and cite it in the thesis
+               # keep the validation metrics for selecting the hyperparameter (it's important to consider only the validation set)
     best_val_loss = float('inf')
     best_model = None
     epochs_no_improve = 0
-    patience = 20
+    patience = v_patience
     history = {'train_loss': [], 'val_loss': [], 'epoch_time': []}
 
-    for epoch in range(500):
+    for epoch in range(v_epoch):
         epoch_start = time.time()
 
-        # Training phase
         vae.train()
         train_loss = 0
         for batch in train_loader:
             src_imgs = batch[0].to(device)
             tgt_imgs = batch[1].to(device).view(-1, 1568)
-            relations = batch[4].to(device)  # Using index 4 for relation labels
+            relations = batch[4].to(device)
 
             optimizer.zero_grad()
             recon_imgs, mu, logvar, _ = vae(src_imgs, relations)
@@ -86,6 +85,7 @@ def train_relation_vae():
         val_loss /= len(val_loader)
         history['val_loss'].append(val_loss)
 
+        # Epoch timing
         epoch_time = time.time() - epoch_start
         history['epoch_time'].append(epoch_time)
 
@@ -94,7 +94,6 @@ def train_relation_vae():
               f"Val Loss {val_loss:.4f} | "
               f"Time {epoch_time:.2f}s")
 
-        # Early stopping check
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
@@ -106,15 +105,13 @@ def train_relation_vae():
                 print(f"Early stopping after {epoch+1} epochs!")
                 break
 
-    # Load best model
     if best_model is not None:
         vae.load_state_dict(best_model)
 
-    # Save final model and history
     torch.save({
         'model_state': vae.state_dict(),
         'history': history,
         'best_val_loss': best_val_loss
-    }, "relation_vae_model.pt")
+    }, v_model_name)
 
     return vae, history

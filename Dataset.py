@@ -31,38 +31,32 @@ class TwoDigitRelationMNIST(Dataset):
         self.actual_relations = []
         self.min_num = min_num
         self.max_num = max_num
+        relation_to_idx = {-1: 0, 1: 1, -12: 2, 12: 3}
 
-        # Create all valid number pairs
         numbers = list(range(min_num, max_num + 1))
         for num in numbers:
             for rel in relations:
                 target_num = num + rel
 
-                # Skip invalid relationships
                 if target_num < min_num or target_num > max_num:
                     continue
 
-                # Split into digits
                 num_tens = num // 10
                 num_units = num % 10
                 target_tens = target_num // 10
                 target_units = target_num % 10
 
-                # Find digit indices
                 tens_idx = (self.targets == num_tens).nonzero().squeeze()
                 units_idx = (self.targets == num_units).nonzero().squeeze()
                 target_tens_idx = (self.targets == target_tens).nonzero().squeeze()
                 target_units_idx = (self.targets == target_units).nonzero().squeeze()
 
-                # Skip if any digit is missing
                 if min(len(tens_idx), len(units_idx),
                       len(target_tens_idx), len(target_units_idx)) == 0:
                     continue
 
-                # Convert relation to binary label
-                relation_label = 0 if rel < 0 else 1
+                relation_label = relation_to_idx[rel]
 
-                # Add pairs (limit 500 per relation)
                 for _ in range(min(350, len(tens_idx))):
                     self.pairs.append((num, target_num))
                     self.relations.append(relation_label)
@@ -76,14 +70,12 @@ class TwoDigitRelationMNIST(Dataset):
         relation = self.relations[idx]
         actual_rel = self.actual_relations[idx]
 
-        # Get source digits
         src_tens = src_num // 10
         src_units = src_num % 10
         src_tens_img = self.get_digit_image(src_tens)
         src_units_img = self.get_digit_image(src_units)
         src_img = torch.cat([src_tens_img, src_units_img], dim=-1)  # [1, 28, 56]
 
-        # Get target digits
         tgt_tens = tgt_num // 10
         tgt_units = tgt_num % 10
         tgt_tens_img = self.get_digit_image(tgt_tens)
