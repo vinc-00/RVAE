@@ -23,39 +23,39 @@ class RelationVAE(nn.Module):
     def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes):
         super().__init__()
 
-        self.relation_embedding = nn.Embedding(4, 16)
+        self.relation_embedding = nn.Embedding(5, 16)
+
+        encoder_layer_sizes = [encoder_layer_sizes[0] + 16] + encoder_layer_sizes[1:]
 
         encoder_layers = []
-        for i, (in_size, out_size) in enumerate(zip(encoder_layer_sizes[:-1], encoder_layer_sizes[1:])):
+        for in_size, out_size in zip(encoder_layer_sizes[:-1], encoder_layer_sizes[1:]):
             encoder_layers.append(nn.Linear(in_size, out_size))
             encoder_layers.append(nn.BatchNorm1d(out_size))
             encoder_layers.append(nn.LeakyReLU(0.2))
             encoder_layers.append(nn.Dropout(0.2))
 
-        self.encoder_fc = nn.Linear(encoder_layer_sizes[-1], latent_size * 2)
         self.encoder = nn.Sequential(*encoder_layers)
+        self.encoder_fc = nn.Linear(encoder_layer_sizes[-1], latent_size * 2)
 
-        # Decoder
+        # Decoder (no relation embedding used here)
+        decoder_layer_sizes = [latent_size] + decoder_layer_sizes
         decoder_layers = []
-        input_size = latent_size + 16
-        decoder_layer_sizes = [input_size] + decoder_layer_sizes
-
         for i, (in_size, out_size) in enumerate(zip(decoder_layer_sizes[:-1], decoder_layer_sizes[1:])):
             decoder_layers.append(nn.Linear(in_size, out_size))
-            if i < len(decoder_layer_sizes) - 2: 
+            if i < len(decoder_layer_sizes) - 2:
                 decoder_layers.append(nn.BatchNorm1d(out_size))
                 decoder_layers.append(nn.LeakyReLU(0.2))
                 decoder_layers.append(nn.Dropout(0.2))
 
         self.decoder = nn.Sequential(*decoder_layers)
 
-    def encode(self, x):
+    def encode(self, x, relation):
+        rel_embed = self.relation_embedding(relation)
+        x = torch.cat([x, rel_embed], dim=-1)
         h = self.encoder(x)
         return self.encoder_fc(h)
 
-    def decode(self, z, relation):
-        rel_embed = self.relation_embedding(relation)
-        z = torch.cat([z, rel_embed], dim=-1)
+    def decode(self, z):
         return torch.sigmoid(self.decoder(z))
 
     def reparameterize(self, mu, log_var):
@@ -64,9 +64,9 @@ class RelationVAE(nn.Module):
         return mu + eps * std
 
     def forward(self, x, relation):
-        x = x.view(x.size(0), -1)  # [batch_size, channels, heigth, width] -> [batch_size, flatten_image]
-        h = self.encode(x)
-        mu, log_var = torch.chunk(h, 2, dim=-1) # split into mean and variance
+        x = x.view(x.size(0), -1)
+        h = self.encode(x, relation)
+        mu, log_var = torch.chunk(h, 2, dim=-1)
         z = self.reparameterize(mu, log_var)
-        recon_x = self.decode(z, relation)
+        recon_x = self.decode(z)
         return recon_x, mu, log_var, z
