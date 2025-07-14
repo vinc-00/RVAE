@@ -20,12 +20,12 @@ from copy import deepcopy
 
 
 class RelationVAE(nn.Module):
-    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes):
+    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes, emb_dim=128):
         super().__init__()
 
-        self.relation_embedding = nn.Embedding(5, 16)
+        self.relation_embedding = nn.Embedding(5, emb_dim)
 
-        encoder_layer_sizes = [encoder_layer_sizes[0] + 16] + encoder_layer_sizes[1:]
+        encoder_layer_sizes = [encoder_layer_sizes[0] + emb_dim] + encoder_layer_sizes[1:]
 
         encoder_layers = []
         for in_size, out_size in zip(encoder_layer_sizes[:-1], encoder_layer_sizes[1:]):
