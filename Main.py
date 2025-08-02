@@ -19,10 +19,8 @@ from torch.utils.data import DataLoader, random_split, Dataset
 from copy import deepcopy
 from Util import loss_fn
 from Model import RelationVAE
-from Dataset import TwoDigitRelationMNIST
+from Dataset import MNISTTwoDigitDataset
 from Train import train_relation_vae
 
 
-model, history = train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=20, v_model_name='NEW_VAE.pt')
-model_2, history_2 = train_relation_vae(v_lr=0.00005, v_epoch=500, v_patience=20, v_model_name='NEW_VAE_2.pt')
-model_3, history_3 = train_relation_vae(v_lr=0.0005, v_epoch=500, v_patience=20, v_model_name='NEW_VAE_3.pt')
+model, history = train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=25, v_model_name='LAST_VER_VAE.pt')
