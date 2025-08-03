@@ -22,7 +22,7 @@ from Model import RelationVAE
 from Dataset import MNISTTwoDigitDataset
 from time import time
 
-def train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=25, v_model_name='LAST_VER_VAE.pt'):
+def train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=25, v_model_name='LAST_VER_VAE.pt', v_samples_per_pair=400):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     mnist_train = datasets.MNIST(root='./data', train=True, download=True)
@@ -30,7 +30,7 @@ def train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=25, v_model_name='LAST
 
     full_dataset = MNISTTwoDigitDataset(
         mnist_data=mnist_train,
-        samples_per_pair=200, 
+        samples_per_pair=v_samples_per_pair, 
         train=True,
         min_num=0,
         max_num=99,
