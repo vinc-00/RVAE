@@ -113,9 +113,6 @@ def train_relation_vae(v_lr=1e-4, v_epoch=500, v_patience=25, v_model_name='LAST
                 print(f"Early stopping after {epoch+1} epochs!")
                 break
 
-        if (epoch+1) % 5 == 0:
-            test_relation_model(vae, number=15, relation=1)
-
     if best_model is not None:
         vae.load_state_dict(best_model)
 
